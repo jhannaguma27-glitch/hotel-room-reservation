@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 30, 2025 at 12:25 PM
+-- Generation Time: Nov 30, 2025 at 02:57 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -45,7 +45,7 @@ CREATE TABLE `admins` (
 --
 
 INSERT INTO `admins` (`admin_id`, `username`, `email`, `password_hash`, `role`, `created_at`, `last_login`) VALUES
-(1, 'admin', 'admin@hotel.com', '$2y$10$hFd8t8njShdEnOzt0qMVwuIgtdyID0IUmLQyj0Cket2tG766IflFK', 'superadmin', '2025-11-25 21:50:09', '2025-11-30 19:22:44');
+(1, 'admin', 'admin@hotel.com', '$2y$10$hFd8t8njShdEnOzt0qMVwuIgtdyID0IUmLQyj0Cket2tG766IflFK', 'superadmin', '2025-11-25 21:50:09', '2025-11-30 20:29:00');
 
 -- --------------------------------------------------------
 
@@ -118,9 +118,11 @@ CREATE TABLE `reservations` (
 --
 
 INSERT INTO `reservations` (`reservation_id`, `user_id`, `room_id`, `check_in_date`, `check_out_date`, `total_price`, `status`, `created_by_admin`, `created_at`) VALUES
-(1, 1, 1, '2025-11-25', '2025-11-26', 99.99, 'completed', NULL, '2025-11-25 23:04:56'),
-(2, 2, 7, '2025-11-27', '2025-11-28', 199.99, 'confirmed', NULL, '2025-11-27 21:05:19'),
-(3, 3, 8, '2025-11-29', '2025-12-02', 1199.97, 'confirmed', NULL, '2025-11-29 14:19:27');
+(6, 5, 1, '2025-11-30', '2025-11-30', 0.00, 'completed', NULL, '2025-11-30 20:55:47'),
+(7, 5, 3, '2025-11-30', '2025-12-01', 149.99, 'cancelled', NULL, '2025-11-30 21:01:05'),
+(8, 5, 1, '2025-11-30', '2025-12-01', 99.99, 'cancelled', NULL, '2025-11-30 21:13:42'),
+(9, 5, 1, '2025-11-30', '2025-12-01', 99.99, 'cancelled', NULL, '2025-11-30 21:19:08'),
+(10, 5, 3, '2025-11-30', '2025-12-01', 149.99, 'completed', NULL, '2025-11-30 21:23:28');
 
 -- --------------------------------------------------------
 
@@ -137,6 +139,14 @@ CREATE TABLE `reviews` (
   `approved_by_admin` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `reviews`
+--
+
+INSERT INTO `reviews` (`review_id`, `user_id`, `room_id`, `rating`, `comment`, `approved_by_admin`, `created_at`) VALUES
+(6, 5, 1, 4, '12332sdf', NULL, '2025-11-30 21:06:21'),
+(7, 5, 3, 1, 'addd', NULL, '2025-11-30 21:24:39');
 
 -- --------------------------------------------------------
 
@@ -190,13 +200,13 @@ CREATE TABLE `room_types` (
 -- Dumping data for table `room_types`
 --
 
-INSERT INTO `room_types` (`type_id`, `type_name`, `description`, `base_price`, `max_occupancy`, `created_by_admin`, `created_at`) VALUES
-(1, 'Standard Room', 'Comfortable room with basic amenities', 99.99, 2, 1, '2025-11-29 10:56:10'),
-(2, 'Deluxe Room', 'Spacious room with premium amenities', 149.99, 2, 1, '2025-11-29 10:56:10'),
-(3, 'Suite', 'Luxury suite with separate living area', 299.99, 2, 1, '2025-11-29 10:56:10'),
-(4, 'Presidential Suite', 'Ultimate luxury with panoramic views', 599.99, 2, 1, '2025-11-29 10:56:10'),
-(5, 'Family Room', 'Spacious room perfect for families with connecting beds', 199.99, 2, 1, '2025-11-29 10:56:10'),
-(6, 'Executive Suite', 'Business-class suite with work area and premium services', 399.99, 2, 1, '2025-11-29 10:56:10');
+INSERT INTO `room_types` (`type_id`, `type_name`, `description`, `base_price`, `max_occupancy`, `image_path`, `created_by_admin`, `created_at`) VALUES
+(1, 'Standard Room', 'Comfortable room with basic amenities', 99.99, 2, NULL, 1, '2025-11-29 10:56:10'),
+(2, 'Deluxe Room', 'Spacious room with premium amenities', 149.99, 2, NULL, 1, '2025-11-29 10:56:10'),
+(3, 'Suite', 'Luxury suite with separate living area', 299.99, 2, NULL, 1, '2025-11-29 10:56:10'),
+(4, 'Presidential Suite', 'Ultimate luxury with panoramic views', 599.99, 2, NULL, 1, '2025-11-29 10:56:10'),
+(5, 'Family Room', 'Spacious room perfect for families with connecting beds', 199.99, 2, NULL, 1, '2025-11-29 10:56:10'),
+(6, 'Executive Suite', 'Business-class suite with work area and premium services', 399.99, 2, NULL, 1, '2025-11-29 10:56:10');
 
 -- --------------------------------------------------------
 
@@ -223,7 +233,8 @@ INSERT INTO `users` (`user_id`, `full_name`, `email`, `password_hash`, `phone`, 
 (1, 'Trisha Gamido', 'trisha@gmail.com', '$2y$10$3xgfHuta5uH/s4SZd3LOXenuCet.BdqZYK.mGkUcY6eqRRmXbyv7y', '09088184444', '2025-11-25 21:52:14', 0, NULL),
 (2, 'cutie', 'jhannaguma.27@gmail.com', '$2y$10$8E9mtAI46cJWCcQfqrlW8OSr0Q.eIpPbwDyz7csivJUwkGth3zm02', '09123456789', '2025-11-27 20:54:31', 1, NULL),
 (3, 'handi', 'handi@gmail.com', '$2y$10$rcyhpsVOJ/l.OkK59Up6lO458ZlkdaK80WxLpslhbgOl779zIPXf.', '09639403165', '2025-11-27 23:21:55', 1, NULL),
-(4, 'Yldevier John', 'yldevier@gmail.com', '$2y$10$BH3F756qiUGWF7UKgOE.Ru7qDrImnx6nWuJe26fCSDH/73pnTsT.q', '09156113130', '2025-11-30 19:21:49', 1, NULL);
+(4, 'Yldevier John', 'yldevier@gmail.com', '$2y$10$BH3F756qiUGWF7UKgOE.Ru7qDrImnx6nWuJe26fCSDH/73pnTsT.q', '09156113130', '2025-11-30 19:21:49', 1, NULL),
+(5, 'Yldevier', 'ylde@gmail.com', '$2y$10$ITAO600KboKZtTsU/aFgz.7TdwnkGG.1fP52U9AFVqsdqHe6xXeQG', '', '2025-11-30 20:19:46', 1, NULL);
 
 --
 -- Indexes for dumped tables
@@ -335,13 +346,13 @@ ALTER TABLE `payments`
 -- AUTO_INCREMENT for table `reservations`
 --
 ALTER TABLE `reservations`
-  MODIFY `reservation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `reservation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `reviews`
 --
 ALTER TABLE `reviews`
-  MODIFY `review_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `review_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `rooms`
@@ -353,13 +364,13 @@ ALTER TABLE `rooms`
 -- AUTO_INCREMENT for table `room_types`
 --
 ALTER TABLE `room_types`
-  MODIFY `type_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `type_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables
