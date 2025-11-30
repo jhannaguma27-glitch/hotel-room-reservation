@@ -9,20 +9,17 @@ $stmt = $conn->prepare("SELECT * FROM room_types ORDER BY base_price");
 $stmt->execute();
 $room_types = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Get user reservations if logged in
-$reservations = [];
+// Get user data if logged in
+$user = null;
 if (isset($_SESSION['user_id'])) {
-    $stmt = $conn->prepare("
-        SELECT r.*, ro.room_number, rt.type_name, rt.base_price 
-        FROM reservations r
-        JOIN rooms ro ON r.room_id = ro.room_id
-        JOIN room_types rt ON ro.type_id = rt.type_id
-        WHERE r.user_id = ?
-        ORDER BY r.created_at DESC
-        LIMIT 5
-    ");
-    $stmt->execute([$_SESSION['user_id']]);
-    $reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        $user_stmt = $conn->prepare("SELECT full_name FROM users WHERE user_id = ?");
+        $user_stmt->execute([$_SESSION['user_id']]);
+        $user = $user_stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        // Fallback if there's an error
+        $user = ['full_name' => 'User'];
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -70,24 +67,7 @@ if (isset($_SESSION['user_id'])) {
             overflow-x: hidden;
         }
         
-        /* Skip to main content for accessibility */
-        .skip-link {
-            position: absolute;
-            top: -40px;
-            left: 6px;
-            background: var(--gold);
-            color: var(--navy);
-            padding: 12px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            z-index: 10000;
-            transition: var(--transition);
-        }
-        
-        .skip-link:focus {
-            top: 0;
-        }
+
         
         /* Header Styles */
         .header { 
@@ -161,10 +141,6 @@ if (isset($_SESSION['user_id'])) {
             background-clip: text;
             letter-spacing: -0.5px;
             transition: var(--transition);
-        }
-        
-        .logo:hover .logo-text {
-            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
         }
         
         /* Navigation */
@@ -368,25 +344,10 @@ if (isset($_SESSION['user_id'])) {
         .welcome { 
             background: linear-gradient(135deg, var(--white) 0%, #f8fafc 100%);
             padding: 4rem; 
-            border-radius: var(--border-radius); 
-            box-shadow: var(--shadow-lg); 
-            margin: 4rem 0; 
+            border-radius: 16px; 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08); 
+            margin-top: 10rem;
             border-left: 6px solid var(--gold);
-            position: relative;
-            overflow: hidden;
-            text-align: center;
-        }
-        
-        .welcome::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, var(--gold-light) 0%, transparent 70%);
-            opacity: 0.1;
-            border-radius: 50%;
         }
         
         .welcome h1 { 
@@ -410,6 +371,23 @@ if (isset($_SESSION['user_id'])) {
             max-width: 600px;
             margin: 0 auto;
             line-height: 1.8;
+        }
+        
+        .welcome::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, var(--gold-light) 0%, transparent 70%);
+            opacity: 0.1;
+            border-radius: 50%;
+        }
+        
+        .welcome h1 i { 
+            color: var(--gold);
+            font-size: 2.2rem;
         }
         
         /* Alert */
@@ -911,8 +889,6 @@ if (isset($_SESSION['user_id'])) {
     </style>
 </head>
 <body>
-    <!-- Skip to main content -->
-    <a href="#main-content" class="skip-link">Skip to main content</a>
 
     <div class="header" id="header">
         <div class="header-content">
@@ -923,7 +899,9 @@ if (isset($_SESSION['user_id'])) {
             <nav class="nav" aria-label="Main navigation">
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <a href="index.php"><i class="fas fa-home"></i> Home</a>
+                    <a href="user/bookings.php"><i class="fas fa-calendar-check"></i> My Bookings</a>
                     <a href="user/profile.php"><i class="fas fa-user"></i> Profile</a>
+                    <a href="user/reviews.php"><i class="fas fa-star"></i> Reviews</a>
                     <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 <?php else: ?>
                     <a href="login.php"><i class="fas fa-sign-in-alt"></i> Login</a>
@@ -950,7 +928,7 @@ if (isset($_SESSION['user_id'])) {
         <div class="container">
             <?php if (isset($_SESSION['user_id'])): ?>
                 <section class="welcome">
-                    <h1><i class="fas fa-gem"></i> Welcome back, <?= htmlspecialchars($_SESSION['user_name']) ?>!</h1>
+                    <h1><i class="fas fa-gem"></i> Welcome back, <?= htmlspecialchars($user['full_name'] ?? 'User') ?>!</h1>
                     <p>We're delighted to have you with us again. Manage your reservations and explore our exclusive room offerings.</p>
                 </section>
 
@@ -959,64 +937,11 @@ if (isset($_SESSION['user_id'])) {
                         <i class="fas fa-check-circle"></i>
                         <div>
                             <strong>Booking Confirmed!</strong> Your reservation has been successfully created. 
-                            Details are shown below.
+                            Details are shown in the My Bookings Tab.
                         </div>
                     </div>
                 <?php endif; ?>
 
-                <?php if ($reservations): ?>
-                    <section>
-                        <h2 class="section-title">My Recent Reservations</h2>
-                        <div class="reservations-grid">
-                            <?php foreach ($reservations as $reservation): ?>
-                                <div class="reservation-card">
-                                    <div class="reservation-header">
-                                        <h3 class="reservation-title">
-                                            <?= htmlspecialchars($reservation['type_name']) ?> - Room <?= htmlspecialchars($reservation['room_number']) ?>
-                                        </h3>
-                                        <span class="status <?= $reservation['status'] ?>">
-                                            <i class="fas fa-<?= 
-                                                $reservation['status'] == 'confirmed' ? 'check-circle' : 
-                                                ($reservation['status'] == 'pending' ? 'clock' : 
-                                                ($reservation['status'] == 'cancelled' ? 'times-circle' : 
-                                                ($reservation['status'] == 'completed' ? 'flag-checkered' : 'door-open'))) 
-                                            ?>"></i>
-                                            <?= ucfirst(str_replace('_', ' ', $reservation['status'])) ?>
-                                        </span>
-                                    </div>
-                                    
-                                    <div class="reservation-details">
-                                        <div class="detail-item">
-                                            <div class="detail-label">Check-in Date</div>
-                                            <div class="detail-value"><?= date('F j, Y', strtotime($reservation['check_in_date'])) ?></div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">Check-out Date</div>
-                                            <div class="detail-value"><?= date('F j, Y', strtotime($reservation['check_out_date'])) ?></div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">Total Price</div>
-                                            <div class="detail-value">$<?= number_format($reservation['total_price'], 2) ?></div>
-                                        </div>
-                                        <div class="detail-item">
-                                            <div class="detail-label">Room Number</div>
-                                            <div class="detail-value"><?= htmlspecialchars($reservation['room_number']) ?></div>
-                                        </div>
-                                    </div>
-                                    
-                                    <?php if ($reservation['status'] == 'confirmed'): ?>
-                                        <form method="POST" action="user/cancel_reservation.php">
-                                            <input type="hidden" name="reservation_id" value="<?= $reservation['reservation_id'] ?>">
-                                            <button type="submit" onclick="return confirm('Are you sure you want to cancel this reservation?')" class="btn btn-danger">
-                                                <i class="fas fa-times"></i> Cancel Reservation
-                                            </button>
-                                        </form>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </section>
-                <?php endif; ?>
             <?php endif; ?>
 
             <section>

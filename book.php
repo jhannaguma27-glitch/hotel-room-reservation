@@ -34,7 +34,7 @@ if ($_POST) {
     $room = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($room) {
-        $stmt = $conn->prepare("INSERT INTO reservations (user_id, room_id, check_in_date, check_out_date, total_price, status) VALUES (?, ?, ?, ?, ?, 'confirmed')");
+        $stmt = $conn->prepare("INSERT INTO reservations (user_id, room_id, check_in_date, check_out_date, total_price, status) VALUES (?, ?, ?, ?, ?, 'pending')");
         if ($stmt->execute([$_SESSION['user_id'], $room['room_id'], $_POST['checkin'], $_POST['checkout'], $total_price])) {
             header('Location: index.php?booked=1');
             exit;

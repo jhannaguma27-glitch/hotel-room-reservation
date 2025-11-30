@@ -9,9 +9,9 @@ require_once '../config/database.php';
 $db = new Database();
 $conn = $db->getConnection();
 
-$stmt = $conn->prepare("UPDATE reservations SET status = 'cancelled' WHERE reservation_id = ? AND user_id = ? AND status = 'confirmed'");
+$stmt = $conn->prepare("UPDATE reservations SET status = 'cancelled' WHERE reservation_id = ? AND user_id = ? AND (status = 'confirmed' OR status = 'pending')");
 $stmt->execute([$_POST['reservation_id'], $_SESSION['user_id']]);
 
-header('Location: ../index.php');
+header('Location: bookings.php');
 exit;
 ?>

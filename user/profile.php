@@ -9,17 +9,23 @@ require_once '../config/database.php';
 $db = new Database();
 $conn = $db->getConnection();
 
-if ($_POST) {
+// Get user data
+$stmt = $conn->prepare("SELECT * FROM users WHERE user_id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Handle profile update
+if ($_POST && isset($_POST['full_name'])) {
     $stmt = $conn->prepare("UPDATE users SET full_name = ?, phone = ? WHERE user_id = ?");
     if ($stmt->execute([$_POST['full_name'], $_POST['phone'], $_SESSION['user_id']])) {
         $_SESSION['user_name'] = $_POST['full_name'];
         $success = "Profile updated successfully";
+        // Refresh user data
+        $stmt = $conn->prepare("SELECT * FROM users WHERE user_id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }
-
-$stmt = $conn->prepare("SELECT * FROM users WHERE user_id = ?");
-$stmt->execute([$_SESSION['user_id']]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html>

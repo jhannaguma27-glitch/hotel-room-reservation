@@ -27,6 +27,9 @@ SET time_zone = "+00:00";
 -- Table structure for table `admins`
 --
 
+CREATE DATABASE hotel_reservation_system;
+USE hotel_reservation_system;
+
 CREATE TABLE `admins` (
   `admin_id` int(11) NOT NULL,
   `username` varchar(60) NOT NULL,
@@ -178,6 +181,7 @@ CREATE TABLE `room_types` (
   `description` text DEFAULT NULL,
   `base_price` decimal(10,2) NOT NULL,
   `max_occupancy` int(11) NOT NULL DEFAULT 2,
+  `image_path` varchar(255) DEFAULT NULL,
   `created_by_admin` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

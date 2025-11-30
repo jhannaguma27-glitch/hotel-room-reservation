@@ -9,24 +9,40 @@ require_once '../config/database.php';
 $db = new Database();
 $conn = $db->getConnection();
 
-// Handle room type creation with image upload
-if ($_POST && isset($_POST['add_type'])) {
+if (!$conn) {
+    die("Database connection failed. Please check your database configuration.");
+}
+
+// Debug: Show what's being submitted
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    echo "<div style='background: #f0f0f0; padding: 10px; margin: 10px; border: 1px solid #ccc;'>";
+    echo "<strong>DEBUG - Form submitted:</strong><br>";
+    echo "POST data: " . print_r($_POST, true) . "<br>";
+    echo "FILES data: " . print_r($_FILES, true) . "<br>";
+    echo "</div>";
+}
+
+// Handle success message from redirect
+if (isset($_GET['success'])) {
+    $success = "Room type added successfully!";
+}
+
+// First, check if image_path column exists and add it if it doesn't
+try {
+    $check_column = $conn->query("SHOW COLUMNS FROM room_types LIKE 'image_path'");
+    if ($check_column->rowCount() == 0) {
+        $conn->exec("ALTER TABLE room_types ADD COLUMN image_path VARCHAR(255) NULL AFTER max_occupancy");
+    }
+} catch (PDOException $e) {
+    error_log("Error checking/adding image_path column: " . $e->getMessage());
+}
+
+// Handle room type creation
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['type_name'])) {
     $type_name = trim($_POST['type_name']);
     $description = trim($_POST['description']);
     $base_price = floatval($_POST['base_price']);
-    $max_occupancy = isset($_POST['max_occupancy']) ? intval($_POST['max_occupancy']) : 2;
-    
-    // Validate inputs
-    $errors = [];
-    if (empty($type_name)) {
-        $errors[] = "Room type name is required";
-    }
-    if ($base_price <= 0) {
-        $errors[] = "Base price must be greater than 0";
-    }
-    if ($max_occupancy <= 0) {
-        $errors[] = "Maximum occupancy must be greater than 0";
-    }
+    $max_occupancy = intval($_POST['max_occupancy']) ?: 2;
     
     // Handle image upload
     $image_path = null;
@@ -42,46 +58,38 @@ if ($_POST && isset($_POST['add_type'])) {
         $allowed_extensions = ['jpg', 'jpeg', 'png', 'webp'];
         
         if (in_array($file_extension, $allowed_extensions)) {
-            // Check file size (5MB limit)
-            if ($_FILES['room_image']['size'] > 5 * 1024 * 1024) {
-                $errors[] = "Image file size must be less than 5MB";
-            } else {
-                $filename = uniqid() . '_' . preg_replace('/[^a-zA-Z0-9]/', '_', $type_name) . '.' . $file_extension;
-                $target_path = $upload_dir . $filename;
-                
-                if (move_uploaded_file($_FILES['room_image']['tmp_name'], $target_path)) {
-                    $image_path = 'uploads/room_types/' . $filename;
-                } else {
-                    $errors[] = "Failed to upload image";
-                }
+            $filename = uniqid() . '_' . preg_replace('/[^a-zA-Z0-9]/', '_', $type_name) . '.' . $file_extension;
+            $target_path = $upload_dir . $filename;
+            
+            if (move_uploaded_file($_FILES['room_image']['tmp_name'], $target_path)) {
+                $image_path = 'uploads/room_types/' . $filename;
             }
-        } else {
-            $errors[] = "Invalid file type. Please upload JPG, JPEG, PNG, or WebP images only";
         }
     }
     
-    // If no errors, insert into database
-    if (empty($errors)) {
+    if (!empty($type_name) && $base_price > 0) {
         try {
-            $stmt = $conn->prepare("INSERT INTO room_types (type_name, description, base_price, max_occupancy, image_path, created_by_admin) VALUES (?, ?, ?, ?, ?, ?)");
-            if ($stmt->execute([$type_name, $description, $base_price, $max_occupancy, $image_path, $_SESSION['admin_id']])) {
-                $success = "Room type added successfully!";
-                
-                // Clear form data after successful submission
-                $_POST = array();
+            // Check if image_path column exists
+            $check_column = $conn->query("SHOW COLUMNS FROM room_types LIKE 'image_path'");
+            if ($check_column->rowCount() > 0) {
+                $stmt = $conn->prepare("INSERT INTO room_types (type_name, description, base_price, max_occupancy, image_path, created_by_admin) VALUES (?, ?, ?, ?, ?, ?)");
+                $result = $stmt->execute([$type_name, $description, $base_price, $max_occupancy, $image_path, $_SESSION['admin_id']]);
             } else {
-                $error = "Failed to add room type to database";
+                $stmt = $conn->prepare("INSERT INTO room_types (type_name, description, base_price, max_occupancy, created_by_admin) VALUES (?, ?, ?, ?, ?)");
+                $result = $stmt->execute([$type_name, $description, $base_price, $max_occupancy, $_SESSION['admin_id']]);
+            }
+            
+            if ($result) {
+                header("Location: room_types.php?success=1");
+                exit;
+            } else {
+                $error = "Failed to add room type";
             }
         } catch (PDOException $e) {
-            // Check if it's a duplicate entry error
-            if ($e->getCode() == 23000) { // MySQL duplicate entry error code
-                $error = "A room type with this name already exists";
-            } else {
-                $error = "Database error: " . $e->getMessage();
-            }
+            $error = "Error: " . $e->getMessage();
         }
     } else {
-        $error = implode("<br>", $errors);
+        $error = "Please fill in all required fields";
     }
 }
 
@@ -707,6 +715,8 @@ $stats = $stats_stmt->fetch(PDO::FETCH_ASSOC);
                 </div>
                 <a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
                 <a href="rooms.php"><i class="fas fa-door-open"></i> Manage Rooms</a>
+                <a href="reservations.php"><i class="fas fa-calendar-check"></i> Reservations</a>
+                <a href="reviews.php"><i class="fas fa-star"></i> Reviews</a>
                 <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </nav>
         </div>
@@ -760,26 +770,26 @@ $stats = $stats_stmt->fetch(PDO::FETCH_ASSOC);
                         <label class="form-label">Type Name *</label>
                         <input type="text" name="type_name" class="form-input" 
                                placeholder="e.g., Deluxe Suite, Executive Room" 
-                               value="<?= htmlspecialchars($_POST['type_name'] ?? '') ?>" required>
+                               value="<?= isset($error) ? htmlspecialchars($_POST['type_name'] ?? '') : '' ?>" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Base Price (per night) *</label>
                         <input type="number" name="base_price" class="form-input" 
                                step="0.01" min="0" placeholder="0.00" 
-                               value="<?= htmlspecialchars($_POST['base_price'] ?? '') ?>" required>
+                               value="<?= isset($error) ? htmlspecialchars($_POST['base_price'] ?? '') : '' ?>" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Maximum Occupancy *</label>
                         <input type="number" name="max_occupancy" class="form-input" 
                                min="1" max="10" placeholder="2" 
-                               value="<?= htmlspecialchars($_POST['max_occupancy'] ?? '2') ?>" required>
+                               value="<?= isset($error) ? htmlspecialchars($_POST['max_occupancy'] ?? '2') : '2' ?>" required>
                     </div>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label">Description</label>
                     <textarea name="description" class="form-textarea" rows="4" 
-                              placeholder="Describe the room type features and amenities"><?= htmlspecialchars($_POST['description'] ?? '') ?></textarea>
+                              placeholder="Describe the room type features and amenities"><?= isset($error) ? htmlspecialchars($_POST['description'] ?? '') : '' ?></textarea>
                 </div>
                 
                 <div class="form-group">
