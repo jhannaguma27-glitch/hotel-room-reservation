@@ -1,212 +1,422 @@
--- Database initialization
-CREATE DATABASE hotel_reservation_system;
-USE hotel_reservation_system;
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Nov 30, 2025 at 12:25 PM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
 
--- ==============================
---  Table: admins
--- ==============================
-CREATE TABLE admins (
-    admin_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(60) UNIQUE NOT NULL,
-    email VARCHAR(120) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role ENUM('superadmin', 'manager', 'staff') DEFAULT 'staff',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_login DATETIME NULL
-);
-
--- ==============================
---  Table: users
--- ==============================
-CREATE TABLE users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
-    full_name VARCHAR(100) NOT NULL,
-    email VARCHAR(120) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    phone VARCHAR(20) NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_by_admin INT NULL,
-    FOREIGN KEY (created_by_admin) REFERENCES admins(admin_id)
-        ON DELETE SET NULL ON UPDATE CASCADE
-);
-
--- ==============================
---  Table: room_types
-
--- ==============================
-CREATE TABLE room_types (
-    type_id INT AUTO_INCREMENT PRIMARY KEY,
-    type_name VARCHAR(50) UNIQUE NOT NULL,
-    description TEXT NULL,
-    base_price DECIMAL(10,2) NOT NULL,
-    created_by_admin INT NULL,
-    FOREIGN KEY (created_by_admin) REFERENCES admins(admin_id)
-        ON DELETE SET NULL ON UPDATE CASCADE
-);
-
--- ==============================
---  Table: rooms
--- ==============================
-CREATE TABLE rooms (
-    room_id INT AUTO_INCREMENT PRIMARY KEY,
-    room_number VARCHAR(10) UNIQUE NOT NULL,
-    type_id INT NOT NULL,
-    status ENUM('available', 'occupied', 'maintenance') DEFAULT 'available',
-    max_guests INT NOT NULL,
-    amenities TEXT NULL,
-    created_by_admin INT NULL,
-    FOREIGN KEY (type_id) REFERENCES room_types(type_id)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (created_by_admin) REFERENCES admins(admin_id)
-        ON DELETE SET NULL ON UPDATE CASCADE
-);
-
--- ==============================
---  Table: reservations
--- ==============================
-CREATE TABLE reservations (
-    reservation_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    room_id INT NOT NULL,
-    check_in_date DATE NOT NULL,
-    check_out_date DATE NOT NULL,
-    total_price DECIMAL(10,2) NOT NULL,
-    status ENUM('pending', 'confirmed', 'checked_in', 'completed', 'cancelled') DEFAULT 'pending',
-    created_by_admin INT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (room_id) REFERENCES rooms(room_id)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (created_by_admin) REFERENCES admins(admin_id)
-        ON DELETE SET NULL ON UPDATE CASCADE
-);
-
--- ==============================
---  Table: payments
--- ==============================
-CREATE TABLE payments (
-    payment_id INT AUTO_INCREMENT PRIMARY KEY,
-    reservation_id INT NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    payment_method ENUM('credit_card', 'paypal', 'bank_transfer', 'cash') NOT NULL,
-    payment_status ENUM('pending', 'successful', 'failed', 'refunded') DEFAULT 'pending',
-    processed_by_admin INT NULL,
-    paid_at DATETIME NULL,
-    FOREIGN KEY (reservation_id) REFERENCES reservations(reservation_id)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (processed_by_admin) REFERENCES admins(admin_id)
-        ON DELETE SET NULL ON UPDATE CASCADE
-);
-
--- ==============================
---  Table: reviews
--- ==============================
-CREATE TABLE reviews (
-    review_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    room_id INT NOT NULL,
-    rating INT CHECK (rating BETWEEN 1 AND 5),
-    comment TEXT NULL,
-    approved_by_admin INT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (room_id) REFERENCES rooms(room_id)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (approved_by_admin) REFERENCES admins(admin_id)
-        ON DELETE SET NULL ON UPDATE CASCADE
-);
-
--- ==============================
---  Table: notifications
--- ==============================
-CREATE TABLE notifications (
-    notification_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    message TEXT NOT NULL,
-    type ENUM('system', 'promo', 'alert') DEFAULT 'system',
-    is_read BOOLEAN DEFAULT FALSE,
-    sent_by_admin INT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (sent_by_admin) REFERENCES admins(admin_id)
-        ON DELETE SET NULL ON UPDATE CASCADE
-);
-
--- ==============================
---  Table: admin_logs
--- ==============================
-CREATE TABLE admin_logs (
-    log_id INT AUTO_INCREMENT PRIMARY KEY,
-    admin_id INT NOT NULL,
-    action_type VARCHAR(100) NOT NULL,
-    entity_affected VARCHAR(100) NOT NULL,
-    entity_id INT NULL,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    details TEXT NULL,
-    FOREIGN KEY (admin_id) REFERENCES admins(admin_id)
-        ON DELETE CASCADE ON UPDATE CASCADE
-);
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
 
 
-INSERT INTO admins (admin_id, username, email, password_hash, role, created_at, last_login)
-VALUES (1,'admin','admin@hotel.com',
-        '$2y$10$hFd8t8njShdEnOzt0qMVwuIgtdyID0IUmLQyj0Cket2tG766IflFK',
-        'superadmin','2025-11-25 21:50:09','2025-11-26 10:43:13')
-ON DUPLICATE KEY UPDATE
-    username = VALUES(username),
-    email = VALUES(email),
-    password_hash = VALUES(password_hash),
-    role = VALUES(role),
-    last_login = VALUES(last_login);
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
 
-INSERT INTO users (user_id, full_name, email, password_hash, phone, created_at, is_active, created_by_admin)
-VALUES (1,'Trisha Gamido','trisha@gmail.com',
-        '$2y$10$3xgfHuta5uH/s4SZd3LOXenuCet.BdqZYK.mGkUcY6eqRRmXbyv7y',
-        '09088184444','2025-11-25 21:52:14',0,NULL)
-ON DUPLICATE KEY UPDATE
-    full_name = VALUES(full_name),
-    phone = VALUES(phone),
-    is_active = VALUES(is_active);
+--
+-- Database: `hotel_reservation_system`
+--
 
-INSERT INTO room_types (type_id, type_name, description, base_price, created_by_admin)
-VALUES 
-(1,'Standard Room','Comfortable room with basic amenities',99.99,1),
-(2,'Deluxe Room','Spacious room with premium amenities',149.99,1),
-(3,'Suite','Luxury suite with separate living area',299.99,1),
-(4,'Presidential Suite','Ultimate luxury with panoramic views',599.99,1),
-(5,'Family Room','Spacious room perfect for families with connecting beds',199.99,1),
-(6,'Executive Suite','Business-class suite with work area and premium services',399.99,1)
-ON DUPLICATE KEY UPDATE
-    description = VALUES(description),
-    base_price = VALUES(base_price),
-    created_by_admin = VALUES(created_by_admin);
+-- --------------------------------------------------------
 
-INSERT INTO rooms (room_id, room_number, type_id, status, max_guests, amenities, created_by_admin)
-VALUES
-(1,'101',1,'available',2,'WiFi, TV, Air Conditioning',1),
-(2,'102',1,'available',2,'WiFi, TV, Air Conditioning',1),
-(3,'201',2,'available',3,'WiFi, TV, Air Conditioning, Mini Bar',1),
-(4,'202',2,'available',3,'WiFi, TV, Air Conditioning, Mini Bar',1),
-(5,'301',3,'available',4,'WiFi, TV, Air Conditioning, Mini Bar, Balcony',1),
-(6,'401',4,'available',6,'WiFi, TV, Air Conditioning, Mini Bar, Balcony, Jacuzzi',1),
-(7,'501',5,'available',5,'WiFi, TV, Air Conditioning, Mini Bar, Connecting Beds',1),
-(8,'601',6,'available',4,'WiFi, TV, Air Conditioning, Mini Bar, Work Desk, Business Center Access',1)
-ON DUPLICATE KEY UPDATE
-    type_id = VALUES(type_id),
-    status = VALUES(status),
-    max_guests = VALUES(max_guests),
-    amenities = VALUES(amenities);
+--
+-- Table structure for table `admins`
+--
 
-INSERT INTO reservations (reservation_id, user_id, room_id, check_in_date, check_out_date,
-                          total_price, status, created_by_admin, created_at)
-VALUES
-(1,1,1,'2025-11-25','2025-11-26',99.99,'cancelled',NULL,'2025-11-25 23:04:56')
-ON DUPLICATE KEY UPDATE
-    status = VALUES(status),
-    total_price = VALUES(total_price),
-    check_in_date = VALUES(check_in_date),
-    check_out_date = VALUES(check_out_date);
+CREATE TABLE `admins` (
+  `admin_id` int(11) NOT NULL,
+  `username` varchar(60) NOT NULL,
+  `email` varchar(120) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `role` enum('superadmin','manager','staff') DEFAULT 'staff',
+  `created_at` datetime DEFAULT current_timestamp(),
+  `last_login` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `admins`
+--
+
+INSERT INTO `admins` (`admin_id`, `username`, `email`, `password_hash`, `role`, `created_at`, `last_login`) VALUES
+(1, 'admin', 'admin@hotel.com', '$2y$10$hFd8t8njShdEnOzt0qMVwuIgtdyID0IUmLQyj0Cket2tG766IflFK', 'superadmin', '2025-11-25 21:50:09', '2025-11-30 19:22:44');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_logs`
+--
+
+CREATE TABLE `admin_logs` (
+  `log_id` int(11) NOT NULL,
+  `admin_id` int(11) NOT NULL,
+  `action_type` varchar(100) NOT NULL,
+  `entity_affected` varchar(100) NOT NULL,
+  `entity_id` int(11) DEFAULT NULL,
+  `timestamp` datetime DEFAULT current_timestamp(),
+  `details` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `notification_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `message` text NOT NULL,
+  `type` enum('system','promo','alert') DEFAULT 'system',
+  `is_read` tinyint(1) DEFAULT 0,
+  `sent_by_admin` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payments`
+--
+
+CREATE TABLE `payments` (
+  `payment_id` int(11) NOT NULL,
+  `reservation_id` int(11) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `payment_method` enum('credit_card','paypal','bank_transfer','cash') NOT NULL,
+  `payment_status` enum('pending','successful','failed','refunded') DEFAULT 'pending',
+  `processed_by_admin` int(11) DEFAULT NULL,
+  `paid_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `reservations`
+--
+
+CREATE TABLE `reservations` (
+  `reservation_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `room_id` int(11) NOT NULL,
+  `check_in_date` date NOT NULL,
+  `check_out_date` date NOT NULL,
+  `total_price` decimal(10,2) NOT NULL,
+  `status` enum('pending','confirmed','checked_in','completed','cancelled') DEFAULT 'pending',
+  `created_by_admin` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `reservations`
+--
+
+INSERT INTO `reservations` (`reservation_id`, `user_id`, `room_id`, `check_in_date`, `check_out_date`, `total_price`, `status`, `created_by_admin`, `created_at`) VALUES
+(1, 1, 1, '2025-11-25', '2025-11-26', 99.99, 'completed', NULL, '2025-11-25 23:04:56'),
+(2, 2, 7, '2025-11-27', '2025-11-28', 199.99, 'confirmed', NULL, '2025-11-27 21:05:19'),
+(3, 3, 8, '2025-11-29', '2025-12-02', 1199.97, 'confirmed', NULL, '2025-11-29 14:19:27');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `reviews`
+--
+
+CREATE TABLE `reviews` (
+  `review_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `room_id` int(11) NOT NULL,
+  `rating` int(11) DEFAULT NULL CHECK (`rating` between 1 and 5),
+  `comment` text DEFAULT NULL,
+  `approved_by_admin` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `rooms`
+--
+
+CREATE TABLE `rooms` (
+  `room_id` int(11) NOT NULL,
+  `room_number` varchar(10) NOT NULL,
+  `type_id` int(11) NOT NULL,
+  `status` enum('available','occupied','maintenance') DEFAULT 'available',
+  `max_guests` int(11) NOT NULL,
+  `amenities` text DEFAULT NULL,
+  `created_by_admin` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `rooms`
+--
+
+INSERT INTO `rooms` (`room_id`, `room_number`, `type_id`, `status`, `max_guests`, `amenities`, `created_by_admin`) VALUES
+(1, '101', 1, 'available', 2, 'WiFi, TV, Air Conditioning', 1),
+(2, '102', 1, 'available', 2, 'WiFi, TV, Air Conditioning', 1),
+(3, '201', 2, 'available', 3, 'WiFi, TV, Air Conditioning, Mini Bar', 1),
+(4, '202', 2, 'available', 3, 'WiFi, TV, Air Conditioning, Mini Bar', 1),
+(5, '301', 3, 'available', 4, 'WiFi, TV, Air Conditioning, Mini Bar, Balcony', 1),
+(6, '401', 4, 'available', 6, 'WiFi, TV, Air Conditioning, Mini Bar, Balcony, Jacuzzi', 1),
+(7, '501', 5, 'available', 5, 'WiFi, TV, Air Conditioning, Mini Bar, Connecting Beds', 1),
+(8, '601', 6, 'available', 4, 'WiFi, TV, Air Conditioning, Mini Bar, Work Desk, Business Center Access', 1),
+(9, '123', 5, 'available', 6, 'air-conditioning , wifi, TV, ', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `room_types`
+--
+
+CREATE TABLE `room_types` (
+  `type_id` int(11) NOT NULL,
+  `type_name` varchar(50) NOT NULL,
+  `description` text DEFAULT NULL,
+  `base_price` decimal(10,2) NOT NULL,
+  `max_occupancy` int(11) NOT NULL DEFAULT 2,
+  `created_by_admin` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `room_types`
+--
+
+INSERT INTO `room_types` (`type_id`, `type_name`, `description`, `base_price`, `max_occupancy`, `created_by_admin`, `created_at`) VALUES
+(1, 'Standard Room', 'Comfortable room with basic amenities', 99.99, 2, 1, '2025-11-29 10:56:10'),
+(2, 'Deluxe Room', 'Spacious room with premium amenities', 149.99, 2, 1, '2025-11-29 10:56:10'),
+(3, 'Suite', 'Luxury suite with separate living area', 299.99, 2, 1, '2025-11-29 10:56:10'),
+(4, 'Presidential Suite', 'Ultimate luxury with panoramic views', 599.99, 2, 1, '2025-11-29 10:56:10'),
+(5, 'Family Room', 'Spacious room perfect for families with connecting beds', 199.99, 2, 1, '2025-11-29 10:56:10'),
+(6, 'Executive Suite', 'Business-class suite with work area and premium services', 399.99, 2, 1, '2025-11-29 10:56:10');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `user_id` int(11) NOT NULL,
+  `full_name` varchar(100) NOT NULL,
+  `email` varchar(120) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_by_admin` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`user_id`, `full_name`, `email`, `password_hash`, `phone`, `created_at`, `is_active`, `created_by_admin`) VALUES
+(1, 'Trisha Gamido', 'trisha@gmail.com', '$2y$10$3xgfHuta5uH/s4SZd3LOXenuCet.BdqZYK.mGkUcY6eqRRmXbyv7y', '09088184444', '2025-11-25 21:52:14', 0, NULL),
+(2, 'cutie', 'jhannaguma.27@gmail.com', '$2y$10$8E9mtAI46cJWCcQfqrlW8OSr0Q.eIpPbwDyz7csivJUwkGth3zm02', '09123456789', '2025-11-27 20:54:31', 1, NULL),
+(3, 'handi', 'handi@gmail.com', '$2y$10$rcyhpsVOJ/l.OkK59Up6lO458ZlkdaK80WxLpslhbgOl779zIPXf.', '09639403165', '2025-11-27 23:21:55', 1, NULL),
+(4, 'Yldevier John', 'yldevier@gmail.com', '$2y$10$BH3F756qiUGWF7UKgOE.Ru7qDrImnx6nWuJe26fCSDH/73pnTsT.q', '09156113130', '2025-11-30 19:21:49', 1, NULL);
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `admins`
+--
+ALTER TABLE `admins`
+  ADD PRIMARY KEY (`admin_id`),
+  ADD UNIQUE KEY `username` (`username`),
+  ADD UNIQUE KEY `email` (`email`);
+
+--
+-- Indexes for table `admin_logs`
+--
+ALTER TABLE `admin_logs`
+  ADD PRIMARY KEY (`log_id`),
+  ADD KEY `admin_id` (`admin_id`);
+
+--
+-- Indexes for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`notification_id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `sent_by_admin` (`sent_by_admin`);
+
+--
+-- Indexes for table `payments`
+--
+ALTER TABLE `payments`
+  ADD PRIMARY KEY (`payment_id`),
+  ADD KEY `reservation_id` (`reservation_id`),
+  ADD KEY `processed_by_admin` (`processed_by_admin`);
+
+--
+-- Indexes for table `reservations`
+--
+ALTER TABLE `reservations`
+  ADD PRIMARY KEY (`reservation_id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `room_id` (`room_id`),
+  ADD KEY `created_by_admin` (`created_by_admin`);
+
+--
+-- Indexes for table `reviews`
+--
+ALTER TABLE `reviews`
+  ADD PRIMARY KEY (`review_id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `room_id` (`room_id`),
+  ADD KEY `approved_by_admin` (`approved_by_admin`);
+
+--
+-- Indexes for table `rooms`
+--
+ALTER TABLE `rooms`
+  ADD PRIMARY KEY (`room_id`),
+  ADD UNIQUE KEY `room_number` (`room_number`),
+  ADD KEY `type_id` (`type_id`),
+  ADD KEY `created_by_admin` (`created_by_admin`);
+
+--
+-- Indexes for table `room_types`
+--
+ALTER TABLE `room_types`
+  ADD PRIMARY KEY (`type_id`),
+  ADD UNIQUE KEY `type_name` (`type_name`),
+  ADD KEY `created_by_admin` (`created_by_admin`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`user_id`),
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `created_by_admin` (`created_by_admin`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `admins`
+--
+ALTER TABLE `admins`
+  MODIFY `admin_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `admin_logs`
+--
+ALTER TABLE `admin_logs`
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `notifications`
+--
+ALTER TABLE `notifications`
+  MODIFY `notification_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `payments`
+--
+ALTER TABLE `payments`
+  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `reservations`
+--
+ALTER TABLE `reservations`
+  MODIFY `reservation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `reviews`
+--
+ALTER TABLE `reviews`
+  MODIFY `review_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `rooms`
+--
+ALTER TABLE `rooms`
+  MODIFY `room_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+
+--
+-- AUTO_INCREMENT for table `room_types`
+--
+ALTER TABLE `room_types`
+  MODIFY `type_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `admin_logs`
+--
+ALTER TABLE `admin_logs`
+  ADD CONSTRAINT `admin_logs_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `admins` (`admin_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `notifications_ibfk_2` FOREIGN KEY (`sent_by_admin`) REFERENCES `admins` (`admin_id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `payments`
+--
+ALTER TABLE `payments`
+  ADD CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`reservation_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `payments_ibfk_2` FOREIGN KEY (`processed_by_admin`) REFERENCES `admins` (`admin_id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `reservations`
+--
+ALTER TABLE `reservations`
+  ADD CONSTRAINT `reservations_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `reservations_ibfk_2` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `reservations_ibfk_3` FOREIGN KEY (`created_by_admin`) REFERENCES `admins` (`admin_id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `reviews`
+--
+ALTER TABLE `reviews`
+  ADD CONSTRAINT `reviews_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `reviews_ibfk_2` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`room_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `reviews_ibfk_3` FOREIGN KEY (`approved_by_admin`) REFERENCES `admins` (`admin_id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `rooms`
+--
+ALTER TABLE `rooms`
+  ADD CONSTRAINT `rooms_ibfk_1` FOREIGN KEY (`type_id`) REFERENCES `room_types` (`type_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `rooms_ibfk_2` FOREIGN KEY (`created_by_admin`) REFERENCES `admins` (`admin_id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `room_types`
+--
+ALTER TABLE `room_types`
+  ADD CONSTRAINT `room_types_ibfk_1` FOREIGN KEY (`created_by_admin`) REFERENCES `admins` (`admin_id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`created_by_admin`) REFERENCES `admins` (`admin_id`) ON DELETE SET NULL ON UPDATE CASCADE;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
