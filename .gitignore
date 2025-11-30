@@ -1,0 +1,23 @@
+# PHP
+*.log
+*.tmp
+*~
+.DS_Store
+Thumbs.db
+
+# Database config (should be environment-specific)
+config/database.php
+
+# Sample data files
+setup_sample_data.php
+add_*.php
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
